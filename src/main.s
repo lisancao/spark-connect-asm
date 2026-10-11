@@ -70,8 +70,34 @@ _start:
 	mov %r14, %rdi
 	call streq
 	test %eax, %eax
-	jz 8f
+	jz 71f
 	call fmt_test
+	jmp 90f
+71:	lea s_opt_resolve(%rip), %rsi
+	mov %r14, %rdi
+	call streq
+	test %eax, %eax
+	jz 8f
+	inc %rbx
+	mov (%r13,%rbx,8), %rdi
+	push %rdi
+	call strlen
+	pop %rdi
+	mov %eax, %esi
+	call resolve_host
+	mov %eax, %ebx
+	mov $4, %r12d
+72:	movzbl %bl, %edi
+	call emit_u64
+	shr $8, %ebx
+	dec %r12d
+	jz 73f
+	mov $46, %edi
+	call emit
+	jmp 72b
+73:	mov $10, %edi
+	call emit
+	call flush
 	jmp 90f
 8:	mov %r14, sql(%rip)
 19:	inc %rbx
@@ -307,33 +333,30 @@ resolve_remote:
 	inc %r12d
 	cmp $120, %r12d
 	jb 2b
-3:	# host: "localhost" or dotted quad
+3:	# host: everything before ':' (or the end), through resolve_host
 	movw $2, sockaddr(%rip)           # AF_INET
-	movl $0x0100007f, sockaddr+4(%rip) # 127.0.0.1
-	cmpb $'l', (%rbx)
-	je 5f
-	xor %ecx, %ecx                    # byte index
-	xor %eax, %eax
-	mov %rbx, %rsi
-4:	movzbl (%rsi), %edx
-	cmp $'0', %dl
-	jb 41f
-	cmp $'9', %dl
-	ja 41f
-	imul $10, %eax
-	sub $'0', %edx
-	add %edx, %eax
-	inc %rsi
-	jmp 4b
-41:	lea sockaddr+4(%rip), %rdi
-	mov %al, (%rdi,%rcx)
+	xor %ecx, %ecx
+31:	movzbl (%rbx,%rcx), %eax
+	test %al, %al
+	jz 32f
+	cmp $':', %al
+	je 32f
+	cmp $'?', %al
+	je 32f
 	inc %ecx
-	xor %eax, %eax
-	cmpb $'.', (%rsi)
-	jne 5f
-	inc %rsi
-	cmp $4, %ecx
-	jb 4b
+	jmp 31b
+32:	mov %rbx, %rdi
+	mov %ecx, %esi
+	call resolve_host
+	test %eax, %eax
+	jnz 33f
+	lea s_noresolve(%rip), %rsi
+	mov $s_noresolve_len, %edx
+	mov $2, %edi
+	call sys_write
+	mov $1, %edi
+	call sys_exit
+33:	mov %eax, sockaddr+4(%rip)
 5:	# port after ':'
 	mov $15002, %eax
 	mov %rbx, %rsi
@@ -485,6 +508,10 @@ s_usage: .ascii "usage: sparkc [-r sc://host:port] [--json|--schema|--explain] \
 s_closed: .ascii "connection closed before the response completed\n"
 	.set s_closed_len, .-s_closed
 s_connect: .ascii "connect failed\n"
+	.set s_connect_len, .-s_connect
+s_noresolve: .ascii "cannot resolve host\n"
+	.set s_noresolve_len, .-s_noresolve
+s_opt_resolve: .asciz "--resolve"
 	.set s_connect_len, .-s_connect
 s_grpc_error: .ascii "grpc error "
 s_rows:	.ascii " row(s)\n"

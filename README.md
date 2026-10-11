@@ -4,7 +4,7 @@ A [Spark Connect](https://spark.apache.org/docs/latest/spark-connect-overview.ht
 SQL client in x86-64 assembly. GNU assembler, Linux syscalls, no libc, no libraries: the
 binary speaks HTTP/2 and HPACK, frames gRPC, encodes the protobuf request, reads the Arrow
 IPC stream and formats the result, all in about 4,000 lines of assembly. Statically linked,
-it is 21000 bytes stripped.
+it is 25176 bytes stripped.
 
 It is a port of [spark-connect-wasm](../spark-connect-wasm), function for function, with
 the same memory layout, so the two can be read side by side. The WebAssembly text format is
@@ -25,10 +25,11 @@ id | d | a
 3 row(s)
 ```
 
-Flags: `-r sc://host:port` (an IPv4 literal or `localhost`; there is no resolver without
-libc), `--json` for one object per row, `--schema` and `--explain` through AnalyzePlan.
-Plaintext only: TLS stays outside the binary, so Databricks needs something terminating TLS
-in front, such as `stunnel`.
+Flags: `-r sc://host:port`, `--json` for one object per row, `--schema` and `--explain`
+through AnalyzePlan. Names resolve without libc: dotted quads, `localhost`, `/etc/hosts`,
+then one UDP A query to the first nameserver in `/etc/resolv.conf` (`--resolve name` shows
+the answer). Plaintext only: TLS stays outside the binary, so Databricks needs something
+terminating TLS in front, such as `stunnel`.
 
 ## Layout
 
@@ -40,6 +41,7 @@ in front, such as `stunnel`.
 | `src/arrow.s` | flatbuffers accessors, schema as a tree of field records, batch buffer assignment, value printing incl. list, struct and map |
 | `src/hpack.s` | Huffman tree, static and dynamic tables, header block decoding, integer and string encoding |
 | `src/h2.s` | frames: preface, SETTINGS, PING, HEADERS/CONTINUATION, DATA, RST_STREAM, GOAWAY; the request |
+| `src/dns.s` | `/etc/hosts`, `/etc/resolv.conf`, a UDP DNS A query |
 | `src/main.s` | argument parsing, socket, read loop, exit status |
 | `src/hpack_tables.s` | generated from RFC 7541 by `scripts/gen-hpack-tables.mjs` |
 
@@ -57,5 +59,5 @@ diffed against `fixtures/*.expected`.
 
 ## Not supported
 
-Dictionary-encoded or compressed Arrow batches, decimals wider than 64 bits, hostnames
-other than `localhost`, TLS, and the DataFrame API (SQL only, by design).
+Dictionary-encoded or compressed Arrow batches, TLS, IPv6, and the DataFrame API (SQL
+only, by design).
