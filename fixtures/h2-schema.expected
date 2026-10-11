@@ -1,0 +1,6 @@
+exit 0
+--- stdout
+root
+ |-- one: integer (nullable = false)
+ |-- s: string (nullable = false)
+--- stderr

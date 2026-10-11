@@ -1,0 +1,6 @@
+exit 0
+--- stdout
+one | s | d | b | n
+1 | hi | 2.5 | true | NULL
+--- stderr
+1 row(s)
