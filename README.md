@@ -6,7 +6,7 @@ binary speaks HTTP/2 and HPACK, frames gRPC, encodes the protobuf request, reads
 IPC stream and formats the result, all in about 4,000 lines of assembly. Statically linked,
 it is 25176 bytes stripped.
 
-It is a port of [spark-connect-wasm](../spark-connect-wasm), function for function, with
+It is a port of [spark-connect-wasm](https://github.com/lisancao/spark-connect-wasm), function for function, with
 the same memory layout, so the two can be read side by side. The WebAssembly text format is
 structured assembly over a linear memory, which is what made the port mechanical: each WAT
 function became a label with the same locals in callee-saved registers, and every
