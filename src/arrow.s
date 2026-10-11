@@ -722,13 +722,9 @@ emit_value:
 	mov %r12d, %eax
 	shl $4, %eax
 	mov (%r14,%rax), %rdi           # lo
-	mov 8(%r14,%rax), %rcx          # hi
-	mov %rdi, %rdx
-	sar $63, %rdx
-	cmp %rdx, %rcx
-	jne 53f
-	mov F_P1(%rbx), %esi
-	call emit_decimal
+	mov 8(%r14,%rax), %rsi          # hi
+	mov F_P1(%rbx), %edx
+	call emit_decimal128
 	jmp 99f
 53:	call quote
 	lea s_bigdec(%rip), %rdi
@@ -931,7 +927,7 @@ s_NULL:	.ascii "NULL"
 s_true:	.ascii "true"
 s_false: .ascii "false"
 s_f16:	.ascii "<f16>"
-s_bigdec: .ascii "<decimal >64bit>"
+s_bigdec: .ascii "<decimal256>    "
 s_arrow: .ascii " -> "
 s_type:	.ascii "<type "
 s_compressed: .ascii "<compressed batch: unsupported>\n"

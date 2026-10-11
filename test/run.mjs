@@ -8,6 +8,7 @@ const cases = {
   "grpc-select1": ["--grpc", "fixtures/select1.grpc"],
   "grpc-types": ["--grpc", "fixtures/types.grpc"],
   "grpc-types-json": ["--json", "--grpc", "fixtures/types.grpc"],
+  "grpc-decimal128": ["--grpc", "fixtures/decimal128.grpc"],
   "h2-select": ["--replay", "fixtures/select.s2c.bin", "SELECT 1"],
   "h2-error": ["--replay", "fixtures/error.s2c.bin", "SELECT 1"],
   "h2-schema": ["--schema", "--replay", "fixtures/schema.s2c.bin", "SELECT 1"],

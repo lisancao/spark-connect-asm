@@ -2,7 +2,7 @@
 # Ported function for function from the wasm client's emit_* routines.
 	.include "src/layout.inc"
 	.text
-	.globl flush, emit, emits, emit_u64_pad, emit_u64, emit_i64, emit_decimal, emit_f64
+	.globl flush, emit, emits, emit_u64_pad, emit_u64, emit_i64, emit_decimal, emit_decimal128, emit_f64
 	.globl emit_date, emit_timestamp_us, emit_hex, emit_json_string, out_fd, out_len
 
 flush:
@@ -132,6 +132,63 @@ emit_decimal:
 	mov %r13d, %esi
 	call emits
 3:	pop %r14
+	pop %r13
+	pop %r12
+	pop %rbx
+	ret
+
+# emit_decimal128(lo, hi, scale): 128-bit two's complement, digits by rdx:rax division
+emit_decimal128:
+	push %rbx
+	push %r12
+	push %r13
+	push %r14
+	push %r15
+	mov %rdi, %r14                  # lo
+	mov %rsi, %r15                  # hi
+	mov %edx, %r13d                 # scale
+	test %r15, %r15
+	jns 1f
+	mov $45, %edi
+	call emit
+	not %r15
+	neg %r14                        # CF = (lo != 0)
+	cmc
+	adc $0, %r15                    # hi = ~hi + (lo == 0)
+1:	lea mem+DIGITS_END(%rip), %r12
+	xor %ebx, %ebx                  # n
+	mov $10, %rcx
+2:	xor %edx, %edx
+	mov %r15, %rax
+	div %rcx                        # hi / 10
+	mov %rax, %r15
+	mov %r14, %rax
+	div %rcx                        # (rem:lo) / 10
+	mov %rax, %r14
+	add $48, %dl
+	dec %r12
+	mov %dl, (%r12)
+	inc %ebx
+	mov %r14, %rax
+	or %r15, %rax
+	jnz 2b
+	cmp %r13d, %ebx
+	jbe 2b
+	mov %r12, %rdi
+	mov %ebx, %esi
+	sub %r13d, %esi
+	call emits
+	test %r13d, %r13d
+	jz 3f
+	mov $46, %edi
+	call emit
+	mov %ebx, %eax
+	sub %r13d, %eax
+	lea (%r12,%rax), %rdi
+	mov %r13d, %esi
+	call emits
+3:	pop %r15
+	pop %r14
 	pop %r13
 	pop %r12
 	pop %rbx
